@@ -20,9 +20,9 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
           
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: 9.4.0
+          gradle-version: 9.4.1
         name: Set up Gradle
         
       - name: Add permission
@@ -50,7 +50,7 @@ jobs:
           files: |
             build/libs/!(*-@(dev|sources|javadoc)).jar
             build/libs/*-@(dev|sources|javadoc).jar
-          loaders: forge
+          loaders: neoforge
           game-versions: 1.12.2
           java: |
             8
