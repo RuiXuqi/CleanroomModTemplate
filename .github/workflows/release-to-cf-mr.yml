@@ -50,9 +50,9 @@ jobs:
           files: |
             build/libs/!(*-@(dev|sources|javadoc)).jar
             build/libs/*-@(dev|sources|javadoc).jar
-          loaders: neoforge
+          loaders: forge
           game-versions: 1.12.2
           java: |
-            25
+            8
           version: ${{ steps.changes.outputs.tag }}
           changelog: ${{ steps.changes.outputs.changes }}
