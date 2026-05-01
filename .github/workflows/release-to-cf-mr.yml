@@ -22,7 +22,7 @@ jobs:
           
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: 9.4.1
+          gradle-version: 9.5.0
         name: Set up Gradle
         
       - name: Add permission
@@ -50,7 +50,7 @@ jobs:
           files: |
             build/libs/!(*-@(dev|sources|javadoc)).jar
             build/libs/*-@(dev|sources|javadoc).jar
-          loaders: neoforge
+          loaders: forge
           game-versions: 1.12.2
           java: |
             8
