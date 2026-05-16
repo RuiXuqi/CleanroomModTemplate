@@ -6,9 +6,9 @@ plugins {
     id 'maven-publish'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.4.1'
     id 'com.gradleup.shadow' version '9.4.1'
-    id 'xyz.wagyourtail.unimined' version '1.4.17-kappa'
+    id 'xyz.wagyourtail.unimined' version '1.4.18-kappa'
     id 'net.kyori.blossom' version '2.2.0'
-    id 'com.diffplug.spotless' version '8.4.0'
+    id 'com.diffplug.spotless' version '8.5.1'
 }
 
 apply from: 'gradle/scripts/helpers.gradle'
@@ -70,9 +70,9 @@ unimined.minecraft {
         if (propertyBool('use_access_transformer')) {
             accessTransformer "${rootProject.projectDir}/src/main/resources/${propertyString('access_transformer_locations')}"
         }
-        loader "0.5.6-alpha"
-        runs.auth.username = minecraft_username
+        loader "0.5.12-alpha"
         runs.all {
+            args += ['--username', minecraft_username]
             systemProperty("crl.dev.mixin", "${mod_id}.default.mixin.json,${mod_id}.mod.mixin.json")
             def extraArgs = propertyString('extra_jvm_args')
             if (extraArgs != null && !extraArgs.trim().isEmpty()) {
