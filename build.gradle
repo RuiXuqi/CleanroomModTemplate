@@ -5,10 +5,10 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.4.1'
-    id 'com.gradleup.shadow' version '9.4.1'
     id 'xyz.wagyourtail.unimined' version '1.4.18-kappa'
     id 'net.kyori.blossom' version '2.2.0'
-    id 'com.diffplug.spotless' version '8.5.1'
+    id 'com.gradleup.shadow' version '9.4.2'
+    id 'com.diffplug.spotless' version '8.6.0'
 }
 
 apply from: 'gradle/scripts/helpers.gradle'
@@ -19,7 +19,6 @@ assertProperty 'root_package'
 assertProperty 'mod_id'
 assertProperty 'mod_name'
 
-assertSubProperties 'use_lombok_ap', 'lombok_version'
 assertSubProperties 'use_access_transformer', 'access_transformer_locations'
 assertSubProperties 'is_coremod', 'coremod_includes_mod', 'coremod_plugin_class_name'
 assertSubProperties 'use_asset_mover', 'asset_mover_version'
@@ -51,6 +50,8 @@ java {
 configurations {
     contain
     implementation.extendsFrom(contain)
+    shaded
+    implementation.extendsFrom(shaded)
     modCompileOnly
     compileOnly.extendsFrom(modCompileOnly)
     modRuntimeOnly
@@ -107,18 +108,11 @@ unimined.minecraft {
 }
 
 dependencies {
-    if (propertyBool('use_lombok_ap')) {
-        compileOnly "org.projectlombok:lombok:${propertyString('lombok_version')}"
-        annotationProcessor "org.projectlombok:lombok:${propertyString('lombok_version')}"
-
-        testCompileOnly "org.projectlombok:lombok:${propertyString('lombok_version')}"
-        testAnnotationProcessor "org.projectlombok:lombok:${propertyString('lombok_version')}"
-    }
     if (propertyBool('use_asset_mover')) {
         implementation "com.cleanroommc:assetmover:${propertyString('asset_mover_version')}"
     }
     if (propertyBool('enable_junit_testing')) {
-        testImplementation 'org.junit.jupiter:junit-jupiter:6.0.3'
+        testImplementation 'org.junit.jupiter:junit-jupiter:6.1.0'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
@@ -159,12 +153,8 @@ sourceSets {
     }
 }
 
-if (!propertyBool('enable_shadow')) {
-    shadowJar.enabled = false
-}
-
 compileJava {
-    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {
@@ -199,12 +189,23 @@ jar {
     finalizedBy(tasks.named(remapTaskName).get())
 }
 
-
+// Shade deps to the dev jar, so the normal dev jar will contain deps
 shadowJar {
-    configurations = [project.configurations.shadow]
-    archiveClassifier = "shadow"
+    archiveClassifier = 'dev'
+    configurations = [ project.configurations.shaded ]
 }
 
+if (propertyBool('enable_shadow')) {
+    // Unshaded dev jar get 'plain' as name
+    tasks.named("jar").configure {
+        finalizedBy shadowJar
+        archiveClassifier = "plain"
+    }
+} else {
+    tasks.named('shadowJar').configure {
+        enabled = false
+    }
+}
 
 tasks.named(remapTaskName).configure {
     doFirst {
@@ -248,7 +249,7 @@ idea {
 }
 
 compileTestJava {
-    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_25
 }
 
 test {
