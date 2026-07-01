@@ -1,3 +1,5 @@
+// It is advised to not edit this file directly, in order to update script easily.
+// Instead, edit gradle/scripts/extra.gradle to customize the build.
 import org.jetbrains.gradle.ext.Gradle
 
 plugins {
@@ -7,25 +9,30 @@ plugins {
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.4.1'
     id 'xyz.wagyourtail.unimined' version '1.4.25-kappa'
     id 'net.kyori.blossom' version '2.2.0'
-    id 'com.gradleup.shadow' version '9.4.2'
     id 'com.diffplug.spotless' version '8.6.0'
+    id 'com.gradleup.shadow' version '9.4.2' apply false
 }
 
 apply from: 'gradle/scripts/helpers.gradle'
+
+if (propertyBool('enable_shadow')) {
+    apply plugin: 'com.gradleup.shadow'
+}
 
 // Early Assertions
 assertProperty 'mod_version'
 assertProperty 'root_package'
 assertProperty 'mod_id'
+assertProperty 'mod_package'
 assertProperty 'mod_name'
 
 assertSubProperties 'use_access_transformer', 'access_transformer_locations'
 assertSubProperties 'is_coremod', 'coremod_includes_mod', 'coremod_plugin_class_name'
-assertSubProperties 'use_asset_mover', 'asset_mover_version'
 
 setDefaultProperty 'generate_sources_jar', true, false
 setDefaultProperty 'generate_javadocs_jar', true, false
-setDefaultProperty 'minecraft_username', true, 'Developer'
+setDefaultProperty 'enable_shadow', false, false
+setDefaultProperty 'minecraft_username', true, 'Dev'
 setDefaultProperty 'extra_jvm_args', false, ''
 
 version = propertyString('mod_version')
@@ -50,12 +57,14 @@ java {
 configurations {
     contain
     implementation.extendsFrom(contain)
-    shaded
-    implementation.extendsFrom(shaded)
     modCompileOnly
     compileOnly.extendsFrom(modCompileOnly)
     modRuntimeOnly
     runtimeOnly.extendsFrom(modRuntimeOnly)
+    if (propertyBool('enable_shadow')) {
+        shaded
+        implementation.extendsFrom(shaded)
+    }
 }
 
 String remapTaskName = propertyBool('enable_shadow') ? "remapShadowJar" : "remapJar"
@@ -108,10 +117,9 @@ unimined.minecraft {
     }
 }
 
+// Do not configure your deps here!
+// Check gradle/scripts/dependencies.gradle for that.
 dependencies {
-    if (propertyBool('use_asset_mover')) {
-        implementation "com.cleanroommc:assetmover:${propertyString('asset_mover_version')}"
-    }
     if (propertyBool('enable_junit_testing')) {
         testImplementation 'org.junit.jupiter:junit-jupiter:6.1.0'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -132,7 +140,7 @@ sourceSets {
                 property('mod_id', propertyString('mod_id'))
                 property('mod_name', propertyString('mod_name'))
                 property('mod_version', propertyString('mod_version'))
-                property('package', "${root_package}.${mod_id}")
+                property('package', propertyString('mod_package'))
             }
             resources {
                 property('mod_id', propertyString('mod_id'))
@@ -190,22 +198,17 @@ jar {
     finalizedBy(tasks.named(remapTaskName).get())
 }
 
-// Shade deps to the dev jar, so the normal dev jar will contain deps
-shadowJar {
-    archiveClassifier = 'dev'
-    //noinspection GroovyAssignabilityCheck,GroovyAccessibility
-    configurations = [ project.configurations.shaded ]
-}
-
 if (propertyBool('enable_shadow')) {
+    // Shade deps to the dev jar, so the normal dev jar will contain deps
+    shadowJar {
+        archiveClassifier = 'dev'
+        //noinspection GroovyAssignabilityCheck,GroovyAccessibility
+        configurations = [ project.configurations.shaded ]
+    }
     // Unshaded dev jar get 'plain' as name
     tasks.named("jar").configure {
         finalizedBy shadowJar
         archiveClassifier = "plain"
-    }
-} else {
-    tasks.named('shadowJar').configure {
-        enabled = false
     }
 }
 
@@ -225,8 +228,8 @@ idea {
     project {
         settings {
             runConfigurations {
-                "0. Apply Spotless"(Gradle) {
-                    taskNames = ["spotlessApply"]
+                "0. Gen Sources"(Gradle) {
+                    taskNames = ["genSources"]
                 }
                 "1. Run Client"(Gradle) {
                     taskNames = ["runClient"]
@@ -236,6 +239,9 @@ idea {
                 }
                 "3. Build Mod"(Gradle) {
                     taskNames = ["build"]
+                }
+                "4. Apply Spotless"(Gradle) {
+                    taskNames = ["spotlessApply"]
                 }
             }
             compiler.javac {

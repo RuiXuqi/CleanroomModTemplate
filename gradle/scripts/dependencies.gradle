@@ -68,15 +68,17 @@ dependencies {
     // }
 }
 
-tasks.named("shadowJar").configure {
-    // Exclude specific parts of deps to keep your jar clean
-    // dependencies {
-    //     exclude 'META-INF/maven/**'
-    // }
+if (propertyBool('enable_shadow')) {
+    tasks.named("shadowJar").configure {
+        // Exclude specific parts of deps to keep your jar clean
+        // dependencies {
+        //     exclude 'META-INF/maven/**'
+        // }
 
-    // Relocate specific parts of deps, so multiple shaded classes in mods will not conflict
-    // relocate "mezz.jei", "shaded.mezz.jei"
+        // Relocate specific parts of deps, so multiple shaded classes in mods will not conflict
+        // relocate "mezz.jei", "shaded.mezz.jei"
 
-    // Remove unused classes automatically. May cause issues if they are accessed by reflection
-    // minimize()
+        // Remove unused classes automatically. May cause issues if they are accessed by reflection
+        // minimize()
+    }
 }
