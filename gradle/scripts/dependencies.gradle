@@ -9,14 +9,23 @@ repositories {
     maven {
         name = 'CurseMaven'
         url = 'https://cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
     }
     maven {
         name = 'CleanroomCurseMaven'
         url = 'https://curse.cleanroommc.com'
+        content {
+            includeGroup 'curse.maven'
+        }
     }
     maven {
         name = 'Modrinth'
         url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
     }
     mavenCentral()
     mavenLocal() // Must be last for caching to work

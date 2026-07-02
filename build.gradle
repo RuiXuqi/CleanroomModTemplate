@@ -102,12 +102,14 @@ unimined.minecraft {
 
     defaultRemapJar = false
 
-    String jarTaskName = propertyBool('enable_shadow') ? "shadowJar" : "jar"
+    if (sourceSet == sourceSets.main) {
+        String jarTaskName = propertyBool('enable_shadow') ? "shadowJar" : "jar"
 
-    remap(tasks.named(jarTaskName).get()) {
-        mixinRemap {
-            enableBaseMixin()
-            enableMixinExtra()
+        remap(tasks.named(jarTaskName).get()) {
+            mixinRemap {
+                enableBaseMixin()
+                enableMixinExtra()
+            }
         }
     }
 
