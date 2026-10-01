@@ -1,3 +1,8 @@
+// It is advised to not edit this file directly, in order to update script easily.
+// Instead, edit gradle/scripts/extra.gradle to customize the build.
+import groovy.json.JsonOutput
+import org.jetbrains.gradle.ext.Gradle
+
 plugins {
     id 'java'
     id 'java-library'
@@ -6,30 +11,47 @@ plugins {
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.4.1'
     id 'xyz.wagyourtail.unimined' version '1.4.43-kappa'
     id 'net.kyori.blossom' version '2.2.0'
+    id 'com.diffplug.spotless' version '8.10.2'
+    id 'com.gradleup.shadow' version '9.6.1' apply false
 }
 
-import org.jetbrains.gradle.ext.Gradle
+apply from: 'gradle/scripts/helpers.gradle'
 
-ext {
-    //noinspection GroovyAssignabilityCheck
-    access_transformer_locations = "${mod_id}_at.cfg"
+if (propertyBool('enable_shadow')) {
+    apply plugin: 'com.gradleup.shadow'
 }
 
-version = mod_version
-group = root_package
+// Early Assertions
+assertProperty 'mod_version'
+assertProperty 'root_package'
+assertProperty 'mod_id'
+assertProperty 'mod_name'
+
+assertSubProperties 'use_access_transformer', 'access_transformer_locations'
+assertSubProperties 'use_mixins', 'mixin_configs'
+assertSubProperties 'is_coremod', 'coremod_includes_mod', 'coremod_plugin_class_name'
+
+setDefaultProperty 'generate_sources_jar', true, false
+setDefaultProperty 'generate_javadocs_jar', true, false
+setDefaultProperty 'enable_shadow', false, false
+setDefaultProperty 'minecraft_username', true, 'Dev'
+setDefaultProperty 'extra_jvm_args', false, ''
+
+version = propertyString('mod_version')
+group = propertyString('root_package')
 
 base {
-    archivesName = mod_id
+    archivesName = propertyString('mod_id')
 }
 
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
     }
-    if (generate_sources_jar.toBoolean()) {
+    if (propertyBool('generate_sources_jar')) {
         withSourcesJar()
     }
-    if (generate_javadocs_jar.toBoolean()) {
+    if (propertyBool('generate_javadocs_jar')) {
         withJavadocJar()
     }
 }
@@ -41,9 +63,17 @@ configurations {
     compileOnly.extendsFrom(modCompileOnly)
     modRuntimeOnly
     runtimeOnly.extendsFrom(modRuntimeOnly)
+    if (propertyBool('enable_shadow')) {
+        shaded
+        implementation.extendsFrom(shaded)
+    }
 }
 
-def remapTaskName = enable_shadow.toBoolean() ? "remapShadowJar" : "remapJar"
+boolean useMixins = propertyBool('use_mixins')
+def mixinConfigs = propertyStringList('mixin_configs', ',')
+String mixinConfigValue = mixinConfigs.join(',')
+
+String remapTaskName = propertyBool('enable_shadow') ? "remapShadowJar" : "remapJar"
 
 //noinspection GroovyAssignabilityCheck
 unimined.minecraft {
@@ -54,22 +84,25 @@ unimined.minecraft {
     }
 
     cleanroom {
-        if (use_access_transformer.toBoolean()) {
-            accessTransformer "${rootProject.projectDir}/src/main/resources/$access_transformer_locations"
+        if (propertyBool('use_access_transformer')) {
+            accessTransformer "${rootProject.projectDir}/src/main/resources/${propertyString('access_transformer_locations')}"
         }
         loader "0.6.13-alpha"
         runs.all {
             args += ['--username', minecraft_username]
-            def extraArgs = extra_jvm_args
+            if (useMixins) {
+                systemProperty('crl.dev.mixin', mixinConfigValue)
+            }
+            def extraArgs = propertyString('extra_jvm_args')
             if (extraArgs != null && !extraArgs.trim().isEmpty()) {
                 jvmArgs += extraArgs.split { "\\s+" }.toList()
             }
-            if (enable_foundation_debug.toBoolean()) {
+            if (propertyBool('enable_foundation_debug')) {
                 systemProperty("foundation.dump", "true")
                 systemProperty("foundation.verbose", "true")
             }
-            if (is_coremod.toBoolean()) {
-                systemProperty("fml.coreMods.load", coremod_plugin_class_name)
+            if (propertyBool('is_coremod')) {
+                systemProperty("fml.coreMods.load", propertyString('coremod_plugin_class_name'))
             }
             return
         }
@@ -77,9 +110,18 @@ unimined.minecraft {
 
     defaultRemapJar = false
 
-    String jarTaskName = enable_shadow.toBoolean() ? "shadowJar" : "jar"
+    if (sourceSet == sourceSets.main) {
+        String jarTaskName = propertyBool('enable_shadow') ? "shadowJar" : "jar"
 
-    remap(tasks.named(jarTaskName).get())
+        remap(tasks.named(jarTaskName).get()) {
+            if (useMixins) {
+                mixinRemap {
+                    enableBaseMixin()
+                    enableMixinExtra()
+                }
+            }
+        }
+    }
 
     mods {
         remap(configurations.modCompileOnly)
@@ -87,12 +129,14 @@ unimined.minecraft {
     }
 }
 
+// Do not configure your deps here!
+// Check gradle/scripts/dependencies.gradle for that.
 dependencies {
-    if (use_asset_mover.toBoolean()) {
-        implementation "com.cleanroommc:assetmover:${asset_mover_version}"
+    if (useMixins) {
+        compileOnly 'com.cleanroommc:sponge-mixin:0.20.13+mixin.0.8.7'
     }
-    if (enable_junit_testing.toBoolean()) {
-        testImplementation 'org.junit.jupiter:junit-jupiter:6.0.3'
+    if (propertyBool('enable_junit_testing')) {
+        testImplementation 'org.junit.jupiter:junit-jupiter:6.1.3'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
 }
@@ -107,61 +151,28 @@ sourceSets {
     main {
         blossom {
             javaSources {
-                property('mod_id', mod_id)
-                property('mod_name', mod_name)
-                property('mod_version', mod_version)
-                property('package', "${root_package}.${mod_id}")
+                property('mod_id', propertyString('mod_id'))
+                property('mod_name', propertyString('mod_name'))
+                property('mod_version', propertyString('mod_version'))
             }
             resources {
-                property('mod_id', mod_id)
-                property('mod_name', mod_name)
-                property('mod_version', mod_version)
-                property('mod_description', mod_description)
-                property('mod_authors', mod_authors.toString().split(',').findAll { !it.isBlank() }.collect { "\"${it.strip()}\"" }.join(', '))
-                property('mod_credits', mod_credits)
-                property('mod_url', mod_url)
-                property('mod_update_json', mod_update_json)
-                property('mod_logo_path', mod_logo_path)
-                property('mod_issue_tracker', mod_issue_tracker)
+                property('mod_id', propertyString('mod_id'))
+                property('mod_name', propertyString('mod_name'))
+                property('mod_version', propertyString('mod_version'))
+                property('mod_description', propertyString('mod_description'))
+                property('mod_authors', propertyStringList('mod_authors', ',').collect {it.strip()}.join('", "'))
+                property('mod_credits', propertyString('mod_credits'))
+                property('mod_license', propertyString('mod_license'))
+                property('mod_url', propertyString('mod_url'))
+                property('mod_issue_tracker_url', propertyString('mod_issue_tracker_url'))
+                property('mod_update_json', propertyString('mod_update_json'))
+                property('mod_icon_item', propertyString('mod_icon_item'))
+                property('mod_logo_path', propertyString('mod_logo_path'))
+                property('mod_icon_path', propertyString('mod_icon_path'))
+                property('mod_background_path', propertyString('mod_background_path'))
             }
         }
     }
-}
-
-idea {
-    module {
-        inheritOutputDirs = true
-    }
-    project {
-        settings {
-            runConfigurations {
-                '1. Build'(Gradle) {
-                    taskNames = ["build"]
-                }
-                '2. Run Client'(Gradle) {
-                    taskNames = ["runClient"]
-                }
-                '3. Run Server'(Gradle) {
-                    taskNames = ["runServer"]
-                }
-            }
-            compiler.javac {
-                afterEvaluate {
-                    javacAdditionalOptions = '-encoding utf8'
-                    moduleJavacAdditionalOptions = [
-                            (project.name + '.main'): tasks.compileJava.options.compilerArgs.collect { "\"${it}\"" }.join(' ')
-                    ]
-                }
-            }
-            taskTriggers {
-                beforeSync tasks.named("genSources")
-            }
-        }
-    }
-}
-
-if (!enable_shadow.toBoolean()) {
-    shadowJar.enabled = false
 }
 
 compileJava {
@@ -180,18 +191,21 @@ jar {
         manifest {
             def attribute_map = [:]
             attribute_map['ModType'] = "CRL"
+            if (useMixins) {
+                attribute_map['MixinConfigs'] = mixinConfigValue
+            }
             if (configurations.contain.size() > 0) {
                 attribute_map['ContainedDeps'] = configurations.contain.collect { it.name }.join(' ')
                 attribute_map['NonModDeps'] = true
             }
-            if (is_coremod.toBoolean()) {
-                attribute_map['FMLCorePlugin'] = coremod_plugin_class_name
-                if (coremod_includes_mod.toBoolean()) {
+            if (propertyBool('is_coremod')) {
+                attribute_map['FMLCorePlugin'] = propertyString('coremod_plugin_class_name')
+                if (propertyBool('coremod_includes_mod')) {
                     attribute_map['FMLCorePluginContainsFMLMod'] = true
                 }
             }
-            if (use_access_transformer.toBoolean()) {
-                attribute_map['FMLAT'] = access_transformer_locations
+            if (propertyBool('use_access_transformer')) {
+                attribute_map['FMLAT'] = propertyString('access_transformer_locations')
             }
             attributes(attribute_map)
         }
@@ -199,11 +213,53 @@ jar {
     finalizedBy(tasks.named(remapTaskName).get())
 }
 
+if (propertyBool('enable_shadow')) {
+    // Shade deps to the dev jar, so the normal dev jar will contain deps
+    shadowJar {
+        archiveClassifier = 'dev'
+        //noinspection GroovyAssignabilityCheck,GroovyAccessibility
+        configurations = [ project.configurations.shaded ]
+    }
+    // Unshaded dev jar get 'plain' as name
+    tasks.named("jar").configure {
+        finalizedBy shadowJar
+        archiveClassifier = "plain"
+    }
+}
 
-shadowJar {
-    //noinspection GroovyAssignabilityCheck,GroovyAccessibility
-    configurations = [project.configurations.shadow]
-    archiveClassifier = "shadow"
+idea {
+    module {
+        inheritOutputDirs = true
+    }
+    project {
+        settings {
+            runConfigurations {
+                "0. Gen Sources"(Gradle) {
+                    taskNames = ["genSources"]
+                }
+                "1. Run Client"(Gradle) {
+                    taskNames = ["runClient"]
+                }
+                "2. Run Server"(Gradle) {
+                    taskNames = ["runServer"]
+                }
+                "3. Build Mod"(Gradle) {
+                    taskNames = ["build"]
+                }
+                "4. Apply Spotless"(Gradle) {
+                    taskNames = ["spotlessApply"]
+                }
+            }
+            compiler.javac {
+                afterEvaluate {
+                    javacAdditionalOptions = "-encoding utf8"
+                    moduleJavacAdditionalOptions = [
+                            (project.name + ".main"): tasks.compileJava.options.compilerArgs.collect { '"' + it + '"' }.join(' ')
+                    ]
+                }
+            }
+        }
+    }
 }
 
 compileTestJava {
@@ -215,9 +271,44 @@ test {
     javaLauncher.set(javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(25)
     })
-    if (show_testing_output.toBoolean()) {
+    if (propertyBool('show_testing_output')) {
         testLogging {
             showStandardStreams = true
+        }
+    }
+}
+
+tasks.register('generateMixinJson') {
+    group = 'build setup'
+    description = 'Generates missing Mixin configuration JSON files.'
+    onlyIf {
+        useMixins
+    }
+    doLast {
+        def missingConfigs = mixinConfigs.findAll { configName ->
+            !file("src/main/resources/${configName}").exists()
+        }
+        if (missingConfigs.isEmpty()) {
+            logger.lifecycle('No missing Mixin JSON files.')
+            return
+        }
+        missingConfigs.each { configName ->
+            def configFile = file("src/main/resources/${configName}")
+            configFile.parentFile.mkdirs()
+            def config = [
+                    'package': '',
+                    'refmap': propertyString('mixin_refmap'),
+                    'required': true,
+                    'target': '@env(DEFAULT)',
+                    'minVersion': '0.8.7',
+                    'compatibilityLevel': 'JAVA_25',
+                    'mixins': [],
+                    'server': [],
+                    'client': [],
+                    'setSourceFile': true
+            ]
+            configFile.setText(JsonOutput.prettyPrint(JsonOutput.toJson(config)) + '\n', 'UTF-8')
+            logger.lifecycle("Generated Mixin JSON: ${configFile}")
         }
     }
 }

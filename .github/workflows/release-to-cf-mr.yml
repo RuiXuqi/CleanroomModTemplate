@@ -4,34 +4,44 @@ on:
   workflow_dispatch: 
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          java-version: '25'
-          distribution: 'temurin'
-          
-      - uses: gradle/actions/setup-gradle@v6
-        name: Set up Gradle
-        
-      - name: Add permission
-        run: chmod +x ./gradlew
-        
-      - name: Execute Gradle build
-        run: ./gradlew build
+      - name: Download latest release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq '.tagName')"
+          url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${tag}"
 
-      - name: Get Changes between Tags
-        id: changes
-        uses: simbo/changes-between-tags-action@v1
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+
+          gh release download "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern '*.jar' \
+            --dir release-assets
+
+          # Detect the jar with the shortest base name
+          cd release-assets
+          jars=( *.jar )
+          if [ ! -e "${jars[0]}" ]; then
+            echo "::error::No .jar assets found in the release" >&2
+            exit 1
+          fi
+          primary_base=""
+          for f in "${jars[@]}"; do
+            base="${f%.jar}"
+            if [ -z "$primary_base" ] || [ "${#base}" -lt "${#primary_base}" ]; then
+              primary_base="$base"
+            fi
+          done
+          primary="${primary_base}.jar"
+          echo "Primary file: ${primary}"
+          echo "primary=${primary}" >> "$GITHUB_OUTPUT"
 
       - uses: Kir-Antipov/mc-publish@v3
         with:
@@ -46,11 +56,12 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
           files: |
-            build/libs/!(*-@(dev|sources|javadoc)).jar
-            build/libs/*-@(dev|sources|javadoc).jar
-          loaders: forge
+            release-assets/${{ steps.release.outputs.primary }}
+            release-assets/*.jar
+          loaders: neoforge
+          environment: client | server
           game-versions: 1.12.2
           java: |
             25
-          version: ${{ steps.changes.outputs.tag }}
-          changelog: ${{ steps.changes.outputs.changes }}
+          version: ${{ steps.release.outputs.tag }}
+          changelog: '[View changelog on GitHub](${{ steps.release.outputs.url }})'

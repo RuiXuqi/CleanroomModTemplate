@@ -1,3 +1,17 @@
+# Modified version of CleanroomModTemplate
+A modified version of [CleanroomMC/CleanroomModTemplate](https://github.com/CleanroomMC/CleanroomModTemplate) with some QoL improvements.
+
+Feature:
+- Instant Gradle and kappa Unimined update
+- Improved shadow configuration to make you work less
+- Spotless plugin, whose check is disabled by default
+
+Stability not guaranteed.
+
+## Tips
+- Mixin support is included in the main branch and controlled by `use_mixins` in `gradle.properties`.
+- [RuiXuqi/ForgeDevEnv](https://github.com/RuiXuqi/ForgeDevEnv) provides MC 1.12.2 Forge 2847 support. Configuration highly aligned with this this.
+
 # CleanroomModTemplate
 Mod development template for Cleanroom, uses a custom [Unimined fork](https://github.com/kappa-maintainer/Unimined) ([original](https://github.com/unimined/Unimined))
 
@@ -6,15 +20,7 @@ May have issues, report here or [here](https://github.com/kappa-maintainer/Unimi
 
 ## DOs and DON'Ts
 ### Choose Branch
-Choose mixin branch if you want to use Mixin.
-
-Use scala and kotlin branch if you want to use those languages. 
-
-There are 4 branches available:
-- main
-- mixin
-- scala
-- kotlin
+The main branch includes optional Mixin support.
 
 If you want to use non-main branches, after clicked *Create a new repository* under *Use this template*, check the *Include all branches* checkbox.
 
@@ -46,11 +52,14 @@ You should change its location to fit your new package name.
 You can find its template under `src/main/java-templates`.
 
 ### Mixin
+`use_mixins` is enabled by default with mixin examples. Remove them if your mod do not need mixins.
+
 1. Rename json config file to use your modid. 
 2. Add **all** your mixin classes there.
 3. Use `IMixinConfigPlugin` to control if certain mixin should be enabled.
 4. mixin classes will be passed to the plugin only when target class is loading, so you don't need to call `Loader.isModLoaded()`
-5. Don't worry about refmap, Unimined will handle it automatically. You can still `disableRefmap()` manually though
+5. If you add another configuration filename to `mixin_configs`, run `./gradlew generateMixinJson` to create its missing JSON file.
+6. Don't worry about refmap, Unimined will handle it automatically. You can still `disableRefmap()` manually though
 
 ### Access Transformer
 You **MUST** write AT file in MCP name. It will be remapped back to SRG name in artifact jar.

@@ -13,18 +13,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Set up JDK
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: '25'
           distribution: 'temurin'
-      - uses: gradle/actions/setup-gradle@v6
-        name: Set up Gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Add permission
         run: chmod +x ./gradlew
       - name: Execute Gradle build
         run: ./gradlew build
-
-      - uses: ncipollo/release-action@v1
+      - name: Release build artifacts
+        uses: ncipollo/release-action@v1
         with:
           artifacts: "build/libs/*"
           generateReleaseNotes: true
+      - name: Delete tag on fail
+        if: failure()
+        run: |
+          echo "Cleaning up tag..."
+          git push origin :refs/tags/${{ github.ref_name }}
