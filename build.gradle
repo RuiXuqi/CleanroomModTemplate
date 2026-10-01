@@ -8,7 +8,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.4.1'
-    id 'xyz.wagyourtail.unimined' version '1.4.41-kappa'
+    id 'xyz.wagyourtail.unimined' version '1.4.43-kappa'
     id 'net.kyori.blossom' version '2.2.0'
     id 'com.diffplug.spotless' version '8.10.2'
     id 'com.gradleup.shadow' version '9.6.1' apply false
@@ -86,7 +86,7 @@ unimined.minecraft {
         if (propertyBool('use_access_transformer')) {
             accessTransformer "${rootProject.projectDir}/src/main/resources/${propertyString('access_transformer_locations')}"
         }
-        loader "0.6.10-alpha"
+        loader "0.6.13-alpha"
         runs.all {
             args += ['--username', minecraft_username]
             if (useMixins) {
