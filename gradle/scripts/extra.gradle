@@ -3,6 +3,9 @@
 
 // If you wish to use the default helper methods, uncomment the line below
 // apply from: 'gradle/scripts/helpers.gradle'
+
+apply plugin: 'com.diffplug.spotless'
+
 spotless {
     enforceCheck false
 
