@@ -128,6 +128,11 @@ unimined.minecraft {
     }
 }
 
+// Remove the annoying blue icon by Unimined
+tasks.matching { it.name == 'genIntellijRuns' }.configureEach {
+    enabled = false
+}
+
 // Do not configure your deps here!
 // Check gradle/scripts/dependencies.gradle for that.
 dependencies {

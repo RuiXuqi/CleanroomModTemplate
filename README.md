@@ -25,9 +25,6 @@ The main branch includes optional Mixin support.
 
 If you want to use non-main branches, after clicked *Create a new repository* under *Use this template*, check the *Include all branches* checkbox.
 
-### Running Client or Server
-If you are using IntelliJ, **DO NOT** use the `Minecraft Client` configure with a blue icon. Just use the `2. Run Client` Gradle task.
-
 ### Adding Mod Dependencies
 You can find dependencies block in `gradle/scripts/dependencies.gradle`.
 
