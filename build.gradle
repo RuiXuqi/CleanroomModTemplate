@@ -131,9 +131,6 @@ unimined.minecraft {
 // Do not configure your deps here!
 // Check gradle/scripts/dependencies.gradle for that.
 dependencies {
-    if (useMixins) {
-        compileOnly 'com.cleanroommc:sponge-mixin:0.20.13+mixin.0.8.7'
-    }
     if (propertyBool('enable_junit_testing')) {
         testImplementation 'org.junit.jupiter:junit-jupiter:6.1.3'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
