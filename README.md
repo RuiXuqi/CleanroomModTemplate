@@ -10,7 +10,7 @@ Stability not guaranteed.
 
 ## Tips
 - Mixin support is included in the main branch and controlled by `use_mixins` in `gradle.properties`.
-- [RuiXuqi/ForgeDevEnv](https://github.com/RuiXuqi/ForgeDevEnv) provides MC 1.12.2 Forge 2847 support. Configuration highly aligned with this this.
+- [RuiXuqi/ForgeDevEnv](https://github.com/RuiXuqi/ForgeDevEnv) provides MC 1.12.2 Forge 2847 support. Configuration highly aligned with this one.
 - Clear lines in `gradle/scripts/extra.gradle` to disable spotless if unnecessary.
 
 # CleanroomModTemplate
