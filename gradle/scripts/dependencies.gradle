@@ -57,7 +57,7 @@ dependencies {
     // Full documentation: https://docs.modrinth.com/docs/tutorials/maven/
 
     // Example - Local dependencies:
-    // 'libs:ctm-1.2.1; << libs = folder name (/libs) in flatDir, ctm-1.2.1 = file name (ctm-1.2.1.jar)
+    // 'libs:jei:4.31.2 << libs = folder name (/libs) in flatDir, jei:4.31.2 = file name (jei-4.31.2.jar)
 
     // Common dependency types (configuration):
     // implementation = dependency available at both compile time and runtime
