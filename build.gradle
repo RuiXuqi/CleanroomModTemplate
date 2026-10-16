@@ -140,6 +140,7 @@ if (useMixins) {
 dependencies {
     if (useMixins) {
         annotationProcessor 'com.cleanroommc:cleanmix:0.7.2'
+        annotationProcessor 'com.cleanroommc:mixinextras-common:0.5.5'
     }
     if (propertyBool('enable_junit_testing')) {
         testImplementation 'org.junit.jupiter:junit-jupiter:6.1.3'
