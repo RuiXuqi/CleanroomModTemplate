@@ -77,7 +77,6 @@ if (propertyBool('enable_shadow')) {
     }
 }
 
-//noinspection GroovyAssignabilityCheck
 mcpForge {
     if (propertyBool('use_access_transformer')) {
         accessTransformers.from(propertyStringList('access_transformer_locations').collect {
